@@ -28,8 +28,7 @@ on:
     - cron: '0 16 */4 * *'
 
 permissions:
-  pages: write
-  id-token: write
+  contents: write
 
 jobs:
   build-vector:
@@ -198,11 +197,11 @@ jobs:
     if: always() && (needs.build-vector.result == 'success' || needs.build-raster-light.result == 'success' || needs.build-raster-dark.result == 'success')
     needs: [build-vector, build-raster-light, build-raster-dark]
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
+      - name: checkout repository
+        uses: actions/checkout@v4
+
       - name: download all artifacts
         uses: actions/download-artifact@v4
 
@@ -213,15 +212,11 @@ jobs:
           [ -f vector-tiles/hong-kong-labels.pmtiles ] && mv vector-tiles/hong-kong-labels.pmtiles _site/hong-kong-labels.pmtiles || true
           [ -f raster-tiles-light/hong-kong-raster.pmtiles ] && mv raster-tiles-light/hong-kong-raster.pmtiles _site/hong-kong-raster.pmtiles || true
           [ -f raster-tiles-dark/hong-kong-raster-dark.pmtiles ] && mv raster-tiles-dark/hong-kong-raster-dark.pmtiles _site/hong-kong-raster-dark.pmtiles || true
+          echo "pmtiles.hkbus.app" > _site/CNAME
 
-      - name: setup pages
-        uses: actions/configure-pages@v5
-
-      - name: upload artifact for pages deployment
-        uses: actions/upload-pages-artifact@v3
+      - name: deploy to gh-pages branch
+        uses: JamesIves/github-pages-deploy-action@v4
         with:
-          path: './_site'
-
-      - name: deploy to github pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          folder: _site
+          branch: gh-pages
+          single-commit: true
